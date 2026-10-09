@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}</style>
+<title>vLLM 部件图</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: one video request as a track of eight stations; bench probes drawn as bars on the same grid; click a station to open it. Then the five design decisions that explain the shape. */
+:root{
+  --bg:#eef1f5; --panel:#f8fafc; --ink:#17212e; --mute:#566579; --line:#cdd5df;
+  --accent:#0d6587; --accent-soft:#d8eaf1;
+  --hot:#a85708; --hot-soft:#f6e6d0;
+  --bench:#5646b8; --bench-soft:#e6e2f7;
+  --thin:#7a8696;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --disp:"Barlow Condensed","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --body:-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei","Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151c; --panel:#161e28; --ink:#dde5ee; --mute:#93a1b3; --line:#2b3745;
+  --accent:#62bfdc; --accent-soft:#143341;
+  --hot:#e3a45a; --hot-soft:#3a2a14;
+  --bench:#a99ef0; --bench-soft:#262048;
+  --thin:#77859a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151c; --panel:#161e28; --ink:#dde5ee; --mute:#93a1b3; --line:#2b3745;
+  --accent:#62bfdc; --accent-soft:#143341;
+  --hot:#e3a45a; --hot-soft:#3a2a14;
+  --bench:#a99ef0; --bench-soft:#262048;
+  --thin:#77859a; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--body)}
+.wrap{max-width:1060px;margin:0 auto;padding-inline:20px;padding-block:36px 72px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font:600 44px/1.05 var(--disp);letter-spacing:.01em}
+h2{font:600 28px/1.15 var(--disp);letter-spacing:.02em}
+p{margin:0;max-width:66ch}
+code{font-family:var(--mono);font-size:.86em}
+.lede{color:var(--mute);margin-top:10px}
+.meta{font:12px/1.5 var(--mono);color:var(--thin);margin-top:14px}
+section{display:flex;flex-direction:column;gap:16px}
+.note{color:var(--mute)}
+
+/* track */
+.scroll{overflow-x:auto;padding-bottom:6px}
+.grid{display:grid;grid-template-columns:104px repeat(8,minmax(92px,1fr));gap:6px 4px;min-width:880px;align-items:stretch}
+.rowlab{font:600 12px/1.3 var(--mono);color:var(--mute);display:flex;align-items:center}
+.procband{font:600 12px/1 var(--body);letter-spacing:.08em;color:var(--mute);padding:6px 8px;border-bottom:2px solid var(--line);text-align:center}
+.st{font:inherit;color:var(--ink);text-align:left;background:var(--panel);border:1px solid var(--line);padding:10px 9px 9px;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-width:0}
+.st:hover{border-color:var(--accent)}
+.st:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.st[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.st .n{font:600 12px/1 var(--mono);opacity:.7}
+.st b{font:600 18px/1.15 var(--disp);letter-spacing:.02em}
+.st .dev{font:11px/1 var(--mono);opacity:.8}
+.out{font:11px/1.35 var(--mono);color:var(--thin);padding:2px 2px 8px;overflow-wrap:anywhere}
+.out::before{content:"↓ ";color:var(--accent)}
+.bar{height:16px;border-radius:2px}
+.bar.on{background:var(--bench)}
+.bar.mix{background:repeating-linear-gradient(135deg,var(--bench) 0 5px,var(--bench-soft) 5px 10px)}
+.bar.off{background:transparent;border-bottom:1px dashed var(--line);border-radius:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--mute)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:26px;height:10px;border-radius:2px;display:inline-block}
+
+/* detail */
+.detail{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--accent);padding:22px 24px;display:flex;flex-direction:column;gap:16px}
+.detail h3{font:600 26px/1.15 var(--disp);letter-spacing:.02em}
+.detail .one{font-size:16px;max-width:60ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px 34px}
+.facts>div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.k{font:600 11.5px/1.4 var(--body);letter-spacing:.08em;color:var(--mute)}
+.facts p{font-size:14.5px;line-height:1.6}
+.read{font:13px/1.6 var(--mono);color:var(--accent);overflow-wrap:anywhere}
+details{border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font-weight:600;max-width:70ch}
+summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details p{margin-top:8px;color:var(--mute);font-size:14.5px}
+.gap{border-left:3px solid var(--hot);background:var(--hot-soft);padding:10px 14px;font-size:14.5px}
+
+/* decisions */
+.dec{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:8px 34px;padding-block:22px;border-top:1px solid var(--line)}
+.dec h3{font:600 23px/1.2 var(--disp);letter-spacing:.02em}
+.dec .where{font:12px/1.5 var(--mono);color:var(--thin);margin-top:6px}
+.dec dl{margin:0;display:grid;grid-template-columns:3.2em minmax(0,1fr);gap:6px 14px;font-size:14.5px;line-height:1.65}
+.dec dt{font:600 12px/1.9 var(--body);letter-spacing:.06em;color:var(--mute)}
+.dec dd{margin:0;max-width:62ch}
+@media (max-width:700px){.dec{grid-template-columns:1fr}}
+
+/* bench table + rest */
+.tbl{overflow-x:auto;border:1px solid var(--line);background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 13px;border-bottom:1px solid var(--line)}
+th{font:600 11.5px/1.3 var(--body);letter-spacing:.07em;color:var(--mute)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.bt td:first-child{color:var(--bench)}
+</style>
+
+<div class="wrap">
+
+<header>
+  <h1>vLLM 部件图</h1>
+  <p class="lede">跟着一个视频请求走一遍。每一站只回答四件事：数据变成了什么，这里做了哪个决定，时间花在哪，先读哪个文件。</p>
+  <p class="meta">vllm-project/vllm @ a6f43e57 · 2026-10-09 · 来自读代码，未运行验证</p>
+</header>
+
+<section>
+  <h2>八站，三个进程</h2>
+  <p class="note">点任意一站展开。下面的色条是 <code>vllm bench</code> 各子命令能量到的范围，和上面的站一一对齐。</p>
+  <div class="scroll">
+    <div class="grid" id="grid"></div>
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--bench)"></i>单独量到这一站</span>
+    <span><i style="background:repeating-linear-gradient(135deg,var(--bench) 0 5px,var(--bench-soft) 5px 10px)"></i>包含在总时间里，分不开</span>
+    <span><code>startup</code> 不在请求路径上，量的是加载与编译；<code>sweep</code> 是反复跑 <code>serve</code> 的编排器</span>
+  </div>
+  <div class="detail" id="detail" aria-live="polite"></div>
+</section>
+
+<section>
+  <h2>五个决定，解释了这条路为什么长这样</h2>
+  <p class="note">其余代码大多是这五件事的变体或例外处理。</p>
+  <div>
+    <div class="dec">
+      <div><h3>CPU 准备和 GPU 循环分进程</h3><p class="where">第 4 站是边界</p></div>
+      <dl>
+        <dt>问题</dt><dd>分词、解码、图像预处理都是 Python 里的 CPU 活。和 GPU 循环放在一个进程，谁忙谁就卡住对方。</dd>
+        <dt>做法</dt><dd>前端进程做完所有准备，只把 token 和张量交给引擎核心。引擎核心是一个不被打断的忙循环。</dd>
+        <dt>代价</dt><dd>每个请求多一次序列化。视频的 <code>pixel_values</code> 很大，所以大张量另走共享内存。</dd>
+      </dl>
+    </div>
+    <div class="dec">
+      <div><h3>每一步重新组 batch</h3><p class="where">第 5 站</p></div>
+      <dl>
+        <dt>问题</dt><dd>请求长短不一、随时到达。等凑齐一批再跑，短请求会被长请求拖住。</dd>
+        <dt>做法</dt><dd>调度器每步按一个 token 预算挑请求：在跑的各给一个 decode token，剩下的预算分给新请求的 prefill，长 prompt 可以分几步吃完。</dd>
+        <dt>代价</dt><dd>batch 形状每步都变，这直接逼出了下面第四个决定。</dd>
+      </dl>
+    </div>
+    <div class="dec">
+      <div><h3>KV cache 分页，按内容哈希复用</h3><p class="where">第 5 站分配，第 7 站读写</p></div>
+      <dl>
+        <dt>问题</dt><dd>每个请求的上下文长度事先不知道，连续分配会留下大量碎片。</dd>
+        <dt>做法</dt><dd>显存切成定长 block，请求按需领取，用一张 block table 记录映射。block 按 token 内容的哈希登记，相同前缀的新请求直接复用。</dd>
+        <dt>代价</dt><dd>注意力 kernel 要经 block table 间接寻址。前缀必须逐 block 完全一致才命中。</dd>
+      </dl>
+    </div>
+    <div class="dec">
+      <div><h3>GPU 上只跑固定形状</h3><p class="where">第 7 站</p></div>
+      <dl>
+        <dt>问题</dt><dd>逐个算子从 Python 下发，每步的启动开销在小 batch 的 decode 上占比很高。</dd>
+        <dt>做法</dt><dd>输入写进常驻 buffer，batch 补齐到预先录好的几种大小，再回放录制好的 CUDA graph。纯 decode 的 batch 用整图，混有 prefill 的用分段图。</dd>
+        <dt>代价</dt><dd>录制时没进图的输入，回放时就改不了。#43776 就是这一类问题：多模态 embedding 没进整图。</dd>
+      </dl>
+    </div>
+    <div class="dec">
+      <div><h3>多模态等于占位 token 加后填 embedding</h3><p class="where">第 3 站占位，第 6 站算，第 7 站填</p></div>
+      <dl>
+        <dt>问题</dt><dd>调度器和 KV cache 只认 token 数，但图像和视频不是 token。</dd>
+        <dt>做法</dt><dd>前端先算出这段视频会占多少个位置，在 prompt 里放等量的占位 token。到 worker 里 encoder 才算出真正的 embedding，覆盖到这些位置上。</dd>
+        <dt>代价</dt><dd>前端算的占位数必须和 encoder 实际输出的个数完全相等，也必须和 HF processor 的算法一致。视频方向的大多数 bug 出在这里。</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>vllm bench 怎么选</h2>
+  <div class="tbl">
+    <table class="bt">
+      <thead><tr><th>你想知道</th><th>用哪个</th><th>注意</th></tr></thead>
+      <tbody>
+        <tr><td>serve</td><td>线上用户感受到的延迟和吞吐</td><td>要先 <code>vllm serve</code>。TTFT 把第 1 到 7 站全算进去，定位不了是哪一站。</td></tr>
+        <tr><td>throughput</td><td>不考虑到达节奏时，引擎最多能跑多快</td><td>所有 prompt 一次性提交，没有排队效应，数字比线上乐观。</td></tr>
+        <tr><td>latency</td><td>某个固定 batch 形状下，模型前向本身多快</td><td>输入是合成 token，前端几乎不参与。比较 kernel 或编译改动用它。</td></tr>
+        <tr><td>mm-processor</td><td>多模态预处理和 encoder 各花多久</td><td>从 processor 开始计时，解码不在内。自带的 <code>random-mm</code> 视频每帧是随机像素。</td></tr>
+        <tr><td>startup</td><td>冷启动和热启动要多久</td><td>与单个请求无关。</td></tr>
+        <tr><td>sweep</td><td>一组参数里哪个配置最好</td><td>自己起停服务并反复跑 <code>serve</code>，结果可画成曲线或帕累托前沿。</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note"><code>serve</code> 的四个时间：TTFT 是首 token 时间，TPOT 是之后每个 token 的平均时间，ITL 是相邻 token 的间隔，E2EL 是整个请求的时间。goodput 是满足你设定的延迟上限的请求每秒完成数。</p>
+</section>
+
+<section>
+  <h2>这条路没经过的地方</h2>
+  <p class="note">它们都挂在上面某一站上。用到的时候再看。</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>目录</th><th>是什么</th><th>挂在哪一站</th></tr></thead>
+      <tbody>
+        <tr><td>v1/worker/gpu/spec_decode/</td><td>投机解码：小模型先猜几个 token，大模型一次验证</td><td>7，改变每步跑几个 token</td></tr>
+        <tr><td>v1/structured_output/</td><td>JSON schema 与语法约束，每步给采样加掩码</td><td>5 维护状态，7 应用掩码</td></tr>
+        <tr><td>distributed/</td><td>多卡多机：张量并行、流水线并行、数据并行、专家并行</td><td>7 的模型前向内部；数据并行在 4 多一个协调进程</td></tr>
+        <tr><td>v1/kv_offload/ · distributed/kv_transfer/</td><td>把 KV block 挪到 CPU、磁盘或别的实例</td><td>5 决定，7 执行</td></tr>
+        <tr><td>compilation/</td><td>torch.compile 的分段后端与融合 pass</td><td>启动时，为 7 准备图</td></tr>
+        <tr><td>model_executor/models/</td><td>约 280 个模型定义，各自声明 processor 和 encoder</td><td>3、6、7 都会调到</td></tr>
+        <tr><td>parser/ · tool_parsers/ · reasoning/</td><td>把输出切成正文、推理段、工具调用</td><td>8</td></tr>
+        <tr><td>entrypoints/ 其余</td><td>Anthropic、Cohere、向量、语音等协议，以及 Rust 前端</td><td>1 的不同入口</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+
+<script>
+const ST = [
+ {t:"协议入口", dev:"CPU", proc:0, out:"messages",
+  one:"把 HTTP 请求校验成内部的消息列表。",
+  io:"JSON 请求体 → 校验过的消息列表，视频此时还只是一个 URL 或 base64 字符串。",
+  decide:"这个请求合不合法、走哪个接口。不做任何重活。",
+  cost:"基本可以忽略。例外是把整段视频用 base64 塞进请求体，解析和拷贝会变明显。",
+  read:"vllm/entrypoints/openai/chat_completion/",
+  q:null},
+ {t:"取流与解码", dev:"CPU，可选 GPU", proc:0, out:"frames [T,H,W,3] uint8",
+  one:"把视频字节变成抽好的帧。视频请求里最容易被低估的一站。",
+  io:"URL → 字节 → 一组原始分辨率的 RGB 帧，外加帧率、时长、帧序号等元数据。",
+  decide:"抽哪些帧。每个模型家族有自己的抽帧类，算法要和 HF processor 一致。Qwen3-VL 默认每秒 2 帧，最多 768 帧。",
+  cost:"抽出的帧数乘以分辨率，再加上定位到每一帧的 seek 开销，后者取决于编码和关键帧间隔。默认用 OpenCV 在 8 线程的池里解码。",
+  read:"vllm/multimodal/media/video.py → vllm/multimodal/video.py → vllm/multimodal/video_decoders/",
+  gap:"没有哪个 bench 子命令单独量这一站。_workbench/video_baseline/time_decode.py 补的就是它。",
+  q:["一段 10 秒、1080p、30fps 的视频走 qwen3_vl 抽帧，会抽出多少帧，这些帧占多少内存？",
+     "帧数 = int(300 帧 ÷ 30fps × 2) = 20 帧。每帧 1920×1080×3 字节约 6.2MB，合计约 124MB。缩放发生在下一站，所以这一站输出的是全分辨率。5 分钟的视频就是 600 帧、约 3.7GB。"]},
+ {t:"多模态 processor", dev:"CPU", proc:0, out:"pixel_values + 展开后的 token",
+  one:"帧变成模型要的张量，同时在 prompt 里占好位置。",
+  io:"帧 → 缩放、归一化、切 patch 后的 pixel_values；prompt 里的一个视频占位符 → 等量的占位 token。",
+  decide:"这段视频占多少个 token。这个数必须和后面 encoder 的输出个数完全相等。",
+  cost:"HF processor 在 CPU 上逐帧处理，和帧数乘像素数成正比。按内容哈希有缓存，同一视频第二次可以跳过 HF processor。",
+  read:"vllm/multimodal/processing/processor.py，以及对应模型文件里的 processor 类",
+  q:["同一个视频连发两次，第二次 processor 的哪些分段会接近 0，哪些不会？",
+     "统计里有五段：算哈希、查缓存、HF processor、合并、更新 prompt。命中缓存后 HF processor 那段消失，但哈希每次都要对内容重新算。哈希在大视频上占多少，值得自己量一次。"]},
+ {t:"跨进程", dev:"IPC", proc:0, out:"EngineCoreRequest",
+  one:"把准备好的请求交给引擎核心。",
+  io:"token 和张量 → 一个 EngineCoreRequest，经 ZMQ 发出；大张量可以走共享内存队列。",
+  decide:"没有决定，只是搬运。数据并行时由客户端挑一个引擎实例。",
+  cost:"和 pixel_values 的大小成正比。文本请求几乎为零。",
+  read:"vllm/v1/engine/input_processor.py → core_client.py → tensor_ipc.py",
+  q:null},
+ {t:"调度", dev:"CPU", proc:1, out:"SchedulerOutput",
+  one:"每一步决定谁跑、跑几个 token、KV 放哪。",
+  io:"等待队列和在跑的请求 → 这一步的名单：每个请求跑几个 token、用哪些 KV block、哪些媒体要先过 encoder。",
+  decide:"三个预算怎么分：每步的 token 上限、空闲的 KV block、encoder 输出缓存的容量。任何一个不够，请求就留在队列里。",
+  cost:"本身是每步一次的 Python 开销。但请求在这里等多久，直接决定负载高时的 TTFT。",
+  read:"vllm/v1/core/sched/scheduler.py 的 schedule()，然后 kv_cache_manager.py",
+  q:["一个 2 万 token 的视频 prompt，每步 token 预算是 8192，没有别的请求。prefill 要几步？",
+     "3 步，前提是允许把长 prompt 分块。每一步的 KV 都会保留，所以后两步只算新增的部分。"]},
+ {t:"视觉 encoder", dev:"GPU", proc:2, out:"embedding [N, hidden]",
+  one:"把 pixel_values 变成语言模型能读的向量。",
+  io:"pixel_values → N 个 embedding，N 就是第 3 站占位 token 的数量。",
+  decide:"没有策略上的决定。输出会按内容哈希留在 GPU 上的缓存里，直到这个请求的 prefill 用完它。",
+  cost:"ViT 一次前向，和帧数乘 patch 数成正比。每个请求只算一次，不随输出长度增加。",
+  read:"vllm/v1/worker/gpu/mm/encoder_runner.py",
+  q:null},
+ {t:"前向与采样", dev:"GPU", proc:2, out:"新 token",
+  one:"语言模型算一步，选出下一个 token。",
+  io:"token 与填好 embedding 的输入 → logits → 每个请求一个新 token。KV cache 在这一步被写入和读取。",
+  decide:"这个 batch 用哪张录好的图：纯 decode 用整图，混有 prefill 用分段图，都对不上就不用图。",
+  cost:"prefill 和 prompt 的 token 数成正比，视频 token 通常占绝大部分。decode 每步的开销基本固定。",
+  read:"vllm/v1/worker/gpu/model_runner.py 的 execute_model()，然后 cudagraph_utils.py",
+  q:["视频请求的 TTFT 里，这一站占的部分和输出长度有关吗？",
+     "无关。TTFT 只包含 prefill 和第一个 token。输出长度影响的是之后的 TPOT 和 E2EL。所以量视频路径时把 max_tokens 设成 1 就够了。"]},
+ {t:"输出", dev:"CPU", proc:0, out:"SSE 文本",
+  one:"token 变回文字，流回客户端。",
+  io:"token id → 增量文本，再切出推理段和工具调用，按 SSE 发出。",
+  decide:"什么时候停：遇到停止串、达到长度上限，或者客户端断开。",
+  cost:"每个 token 一点 CPU。并发很高时会和第 2、3 站抢同一个前端进程的 CPU。",
+  read:"vllm/v1/engine/output_processor.py → detokenizer.py",
+  q:null},
+];
+const PROCS = ["API server 进程", "EngineCore 进程", "Worker 进程"];
+// per station: 0 off, 1 isolated, 2 included but not separable
+const BENCH = [
+ ["serve",        [2,2,2,2,2,2,2,2]],
+ ["throughput",   [0,2,2,2,2,2,2,2]],
+ ["latency",      [0,0,0,0,2,0,2,2]],
+ ["mm-processor", [0,0,1,0,0,1,0,0]],
+];
+
+const grid = document.getElementById("grid");
+const detail = document.getElementById("detail");
+let cur = 1;
+const esc = s => s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function buildGrid(){
+  let h = '<span></span>';
+  // process bands: stations 1-4 frontend, 5 core, 6-7 worker, 8 frontend again
+  h += '<div class="procband" style="grid-column:span 4">'+PROCS[0]+'</div>';
+  h += '<div class="procband">'+PROCS[1]+'</div>';
+  h += '<div class="procband" style="grid-column:span 2">'+PROCS[2]+'</div>';
+  h += '<div class="procband">'+PROCS[0]+'</div>';
+  h += '<span></span>';
+  ST.forEach((s,i)=>{
+    h += '<button class="st" id="st-'+i+'" data-i="'+i+'" aria-pressed="'+(i===cur)+'"><span class="n">'+(i+1)+'</span><b>'+esc(s.t)+'</b><span class="dev">'+esc(s.dev)+'</span></button>';
+  });
+  h += '<span class="rowlab">交给下一站</span>';
+  ST.forEach(s=>{ h += '<span class="out">'+esc(s.out)+'</span>'; });
+  BENCH.forEach(([name,cells])=>{
+    h += '<span class="rowlab" style="color:var(--bench)">'+name+'</span>';
+    cells.forEach(c=>{ h += '<span class="bar '+(c===1?'on':c===2?'mix':'off')+'"></span>'; });
+  });
+  grid.innerHTML = h;
+  grid.querySelectorAll(".st").forEach(b=>b.addEventListener("click",()=>{cur=+b.dataset.i; sync();}));
+}
+function sync(){
+  grid.querySelectorAll(".st").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.i===cur)));
+  const s = ST[cur];
+  let h = '<h3>'+(cur+1)+' · '+esc(s.t)+'</h3><p class="one">'+esc(s.one)+'</p>';
+  if(s.gap) h += '<div class="gap">'+esc(s.gap)+'</div>';
+  h += '<div class="facts">'
+    + '<div><span class="k">数据变成了什么</span><p>'+esc(s.io)+'</p></div>'
+    + '<div><span class="k">这里做的决定</span><p>'+esc(s.decide)+'</p></div>'
+    + '<div><span class="k">时间花在哪</span><p>'+esc(s.cost)+'</p></div>'
+    + '<div><span class="k">先读</span><span class="read">'+esc(s.read)+'</span></div>'
+    + '</div>';
+  if(s.q) h += '<details><summary>先猜再看：'+esc(s.q[0])+'</summary><p>'+esc(s.q[1])+'</p></details>';
+  detail.innerHTML = h;
+}
+buildGrid(); sync();
+</script>
