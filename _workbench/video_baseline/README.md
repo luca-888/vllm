@@ -1,6 +1,6 @@
 # 视频请求路径基线
 
-本目录只存在于 `workbench/luca` 分支，不进入任何上游 PR。
+本目录在学习分支 `workbench/luca` 上，规则见上一级的 AGENTS.md。
 
 ## 目的
 

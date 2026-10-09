@@ -1,14 +1,34 @@
-# _workbench
+# Learning branch
 
-Personal scripts and visualizations on the `workbench/luca` branch. Not part of
-vLLM; the root `AGENTS.md` contribution policy governs upstream work only.
+`workbench/luca` exists for learning vLLM: reading, instrumenting, measuring,
+drawing. Nothing on it is a contribution, so the production rules in the root
+`AGENTS.md` are relaxed here. This applies to `_workbench/` and to experimental
+edits of vLLM source made on this branch.
 
-- **Never upstream this directory.** Start PR branches from `main`, not from
-  this branch, and check that the PR diff has no `_workbench/` paths.
-- **Publishable findings need public inputs.** Reproductions for issues and PRs
-  use the ffmpeg-generated clips, never private or employer data.
-- **Move code out when it becomes a contribution.** A script that turns into an
-  upstream benchmark or test is rewritten in the upstream location on a fresh
-  branch; do not cherry-pick commits from here.
-- **Keep both copies of an HTML page in sync.** A page under `viz/` may also be
-  published as an artifact from a separate source file; update both.
+## Relaxed here
+
+- **No contribution gate.** No duplicate-work search, no busywork rule, no PR
+  checklist. Small, throwaway, and exploratory changes are the point.
+- **Edit vLLM source freely to learn.** Add timers, prints, asserts, or rewrite
+  a function to see what breaks. Prefix those commits with `exp:` so they are
+  easy to find and drop.
+- **Explain generously.** Comments, notes, and diagrams are written for a
+  learner, in Chinese where that reads better. Ignore "minimize comments" and
+  "assume the reader knows vLLM".
+- **No test or style bar.** Scripts need no tests; one-off benchmarks belong
+  here. Line length, docstring format, and commit sign-off are not enforced.
+
+## Still holds
+
+- **Python goes through `uv` and `.venv/bin/python`.**
+- **Say what was measured and what was only read.** A number is either from a
+  run on named hardware or it is a guess.
+- **Nothing leaves this branch as-is.** A finding that becomes an issue or PR is
+  redone on a fresh branch from `main` under the full root rules: rewritten, not
+  cherry-picked, and reproduced with public inputs only.
+
+## Layout
+
+- `video_baseline/` — per-stage timing of the video request path.
+- `viz/` — HTML pages. A page may also be published from a separate source
+  file; update both copies.

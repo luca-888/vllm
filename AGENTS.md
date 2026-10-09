@@ -3,6 +3,11 @@
 > These instructions apply to **all** AI-assisted contributions to `vllm-project/vllm`.
 > Breaching these guidelines can result in automatic banning.
 
+> **Branch `workbench/luca` only:** this is a personal learning branch, not a
+> contribution. Work here follows [`_workbench/AGENTS.md`](_workbench/AGENTS.md),
+> which relaxes the rules below. Anything headed upstream is redone on a fresh
+> branch from `main`, where this note does not exist and every rule applies.
+
 ## 1. Contribution Policy (Mandatory)
 
 ### Duplicate-work checks
