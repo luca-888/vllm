@@ -46,7 +46,16 @@ def run_once(llm: LLM, path: str, sampling_params: SamplingParams) -> dict:
     wall = time.perf_counter() - t0
 
     stats = get_timing_stats_from_engine(llm.llm_engine)
-    stage = next(iter(stats.values()), {})
+    # encoder 侧的 request id 带的后缀和预处理侧对不上，vLLM 没合并成一条，
+    # 所以这里对所有条目求和（每次只有一个请求，求和就是这个请求的值）
+    stage = {
+        key: sum(entry.get(key, 0.0) for entry in stats.values())
+        for key in (
+            "preprocessor_total_secs",
+            "apply_hf_processor_secs",
+            "encoder_forward_secs",
+        )
+    }
     metrics = output.metrics
     processor = stage.get("preprocessor_total_secs", 0.0)
     encoder = stage.get("encoder_forward_secs", 0.0)
@@ -94,6 +103,10 @@ def main() -> None:
         mm_processor_kwargs=args.mm_processor_kwargs,
         mm_processor_cache_gb=0,
         enable_mm_processor_stats=True,
+        # 离线 LLM 默认关掉统计，不开的话 output.metrics 是 None，拿不到排队/调度时间戳
+        disable_log_stats=False,
+        # 同一视频重复跑时，前缀缓存会命中整段视频 token，encoder 和 prefill 都被跳过
+        enable_prefix_caching=False,
     )
     sampling_params = SamplingParams(max_tokens=1, temperature=0.0)
 

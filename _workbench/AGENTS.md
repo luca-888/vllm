@@ -18,6 +18,19 @@ edits of vLLM source made on this branch.
 - **No test or style bar.** Scripts need no tests; one-off benchmarks belong
   here. Line length, docstring format, and commit sign-off are not enforced.
 
+## Don't ask, just do
+
+Luca has pre-authorized everything on this branch and on the experiment box
+(`ssh gpu-117`, repo at `/root/vllm`, needs `sudo`). Do not stop to ask for
+confirmation; act, then report what was done.
+
+- Reading and writing under `/root/vllm` with `sudo`, running experiments,
+  installing packages there.
+- Committing and pushing to `workbench/luca`.
+
+Only stop for deleting results or data that cannot be regenerated, and for
+anything that touches upstream `vllm-project/vllm`.
+
 ## Still holds
 
 - **Python goes through `uv` and `.venv/bin/python`.**
